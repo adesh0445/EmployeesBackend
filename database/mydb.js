@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 // .env se value lena
 const mydb = process.env.DATABASEPATH;
 
-// 👇 Ye line add karo — ye console me URI print karega (sirf check ke liye)
+// Ye line add karo — ye console me URI print karega (sirf check ke liye)
 console.log("📦 DATABASE PATH:", mydb);
 
 mongoose.connect(mydb, {
