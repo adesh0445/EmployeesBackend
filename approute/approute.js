@@ -12,7 +12,7 @@ myapp.get("/applist",async (req,res)=>{
 })    
 
 const User=require('../schemas/user')
-myapp.get('/userlist',verifyAuth,async (req,res)=>{
+myapp.get('/userlist',async (req,res)=>{
     const Userdata= await User.find();
     res.send({status:250,userlist:Userdata})
 });
@@ -79,7 +79,7 @@ myapp.post("/Loginpage", async (req, res) => {
    
     else {
        const token = jwt.sign(
-      {id:match._id, username:match.username},SECRET_KEY,{expiresIn:"1d"}
+      {id:match._id, username:match.username},SECRET_KEY,{expiresIn:"30d"}
     )
       return res.send({ status: 250, message: "Login Successfully", token });
     }
