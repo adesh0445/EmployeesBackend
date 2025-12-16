@@ -79,29 +79,67 @@ myapp.post("/Loginpage", async (req, res) => {
    
     else {
        const token = jwt.sign(
-      {id:match._id, username:match.username},SECRET_KEY,{expiresIn:"30d"}
+      {id:match._id, username:match.username},SECRET_KEY,{expiresIn:"3d"}
     )
       return res.send({ status: 250, message: "Login Successfully", token });
     }
 });
 
-myapp.post("/Addemployee",verifyAuth, async (req,res)=>{
-  const {fullname,phone,email,jobtype,salary,gender} = req.body;
+myapp.post("/Addemployee", verifyAuth, async (req, res) => {
+  const {
+    fullname,
+    phone,
+    email,
+    gender,
+    dob,
+    jobtype,
+    department,
+    salary,
+    joiningDate,
+    status,
+    address,
+    city,
+    district,
+    state,
+    pincode,
+    country
+  } = req.body;
 
-  if(fullname==="" || phone===""){
-    return res.send({status:450,message:"Required Fields"});
+  if (fullname === "" || phone === "") {
+    return res.send({ status: 450, message: "Required Fields" });
   }
 
-  const samefield = await Employees.findOne({fullname,phone});
-  if(samefield){
-    return res.send({status:451,message:"This Employee Already Added"});
+  const samefield = await Employees.findOne({ fullname, phone });
+  if (samefield) {
+    return res.send({ status: 451, message: "This Employee Already Added" });
   }
 
-  const postdata = new Employees({ fullname, phone, email, jobtype, salary,gender });
+  const postdata = new Employees({
+    fullname,
+    phone,
+    email,
+    gender,
+    dob,
+    jobtype,
+    department,
+    salary,
+    joiningDate,
+    status,
+    address,
+    city,
+    district,
+    state,
+    pincode,
+    country,
+    createdBy: req.user.id
+  });
+
   await postdata.save();
 
   res.send({ status: 250, message: "Added Successfully" });
-})
+});
+
+
 
 myapp.delete("/Employeesdelete/:id",verifyAuth,async (req,res)=>{
   const {id} = req.params;
@@ -130,7 +168,7 @@ myapp.get("/Employees/:id",verifyAuth, async (req, res) => {
   const emp = await Employees.findById(id);
 
   if (!emp) {
-    return res.send({ status: 450, message: "Employee Not Found" });
+    return res.send({ status: 450, message: "Employee Not Found Backend" });
   }
 
   res.send({ status: 250, message: "Employee Found", emp });
