@@ -2,7 +2,7 @@ const express=require('express');
 const myapp=express.Router();
 
 myapp.get("/",(req,res)=>{
-res.send("<div><h1>This deault express page</h1></div>")
+res.send("<div><h1>This deault express page  yes</h1></div>")
 })
 
 const appmenu=require("../schemas/appmenu")
@@ -23,27 +23,27 @@ myapp.get("/Employeeslist",verifyAuth,async (req,res)=>{
   res.send({status:250,Employeeslist:EmployeesData})
 })
 
-myapp.post("/Registerpage", async (req, res) => {
-    const { username, password } = req.body;
+// myapp.post("/Registerpage", async (req, res) => {
+//     const { username, password } = req.body;
 
-    // Check if fields are empty
-    if (!username || !password) {
-      res.send({ status: 450, message: "Required All Fields" });
-    }
+//     // Check if fields are empty
+//     if (!username || !password) {
+//       res.send({ status: 450, message: "Required All Fields" });
+//     }
 
-    // Check if username already exists
-    const matchdata = await User.findOne({ username });
-    if (matchdata) {
-      res.send({ status: 451, message: "Username Already In Use" });
-    }
+//     // Check if username already exists
+//     const matchdata = await User.findOne({ username });
+//     if (matchdata) {
+//       res.send({ status: 451, message: "Username Already In Use" });
+//     }
 
-    // Save new user
-    const postdata = new User({ username, password });
-    await postdata.save();
+//     // Save new user
+//     const postdata = new User({ username, password });
+//     await postdata.save();
 
-    res.send({ status: 250, message: "Register Successfully" });
+//     res.send({ status: 250, message: "Register Successfully" });
   
-});
+// });
 
 //JSON WEB TOKEN
 const jwt = require('jsonwebtoken');
@@ -85,26 +85,11 @@ myapp.post("/Loginpage", async (req, res) => {
     }
 });
 
-myapp.post("/Addemployee", verifyAuth, async (req, res) => {
-  const {
-    fullname,
-    phone,
-    email,
-    gender,
-    dob,
-    jobtype,
-    department,
-    salary,
-    joiningDate,
-    status,
-    address,
-    city,
-    district,
-    state,
-    pincode,
-    country
-  } = req.body;
 
+
+
+myapp.post("/Addemployee", verifyAuth, async (req, res) => {
+  const { employeeId, employeePass, fullname, phone, email, gender, dob, jobtype, department, salary, joiningDate, status, address, city, district, state, pincode, country } = req.body;
   if (fullname === "" || phone === "") {
     return res.send({ status: 450, message: "Required Fields" });
   }
@@ -114,25 +99,7 @@ myapp.post("/Addemployee", verifyAuth, async (req, res) => {
     return res.send({ status: 451, message: "This Employee Already Added" });
   }
 
-  const postdata = new Employees({
-    fullname,
-    phone,
-    email,
-    gender,
-    dob,
-    jobtype,
-    department,
-    salary,
-    joiningDate,
-    status,
-    address,
-    city,
-    district,
-    state,
-    pincode,
-    country,
-    createdBy: req.user.id
-  });
+  const postdata = new Employees({employeeId, employeePass, fullname, phone, email, gender, dob, jobtype, department, salary, joiningDate, status, address, city, district, state, pincode, country, createdBy: req.user.id });
 
   await postdata.save();
 
@@ -158,8 +125,7 @@ myapp.put("/Employeesupdate/:id",verifyAuth, async (req, res) => {
   if (!emp) {
     return res.send({ status: 450, message: "Employee Not Found For Update" });
   }
-  res.send({ status: 250, message: "Employee Updated Successfully", emp
-  });
+  res.send({ status: 250, message: "Employee Updated Successfully", emp});
 });
 
 myapp.get("/Employees/:id",verifyAuth, async (req, res) => {
@@ -175,10 +141,133 @@ myapp.get("/Employees/:id",verifyAuth, async (req, res) => {
 });
 
 
+// For Employees Dashboard
+
+      // Employee Login
+      const Attendance = require("../schemas/empattendance");
+
+  myapp.post("/EmployeeLogin", async (req,res)=>{
+    const {employeeId,employeePass} = req.body;
+    if(!employeeId || !employeePass){
+      return res.send({status:450,message:"Required All Fields..."})
+    }
+    const match = await Employees.findOne({employeeId,employeePass})
+    if(!match){
+      return res.send({status:451,message:"Wrong Credentials..."})
+    }
+    else{
+      const token = jwt.sign(
+        {id:match._id,employeeId:match.employeeId},SECRET_KEY,{expiresIn:"10d"})
+      return res.send({status:251,message:"Employee Login Success",token})
+    }
+  })
+
+myapp.post("/employeeCheckIn", verifyAuth, async (req, res) => {
+  const employeeId = req.user.id;
+  const today = new Date().toLocaleDateString("en-CA");
+
+  const already = await Attendance.findOne({ employeeId, date: today });
+  if (already) {
+    return res.send({ status: 451, message: "Already Checked In" });
+  }
+
+  const AttendanceSave = new Attendance({
+    employeeId,
+    date: today,
+    checkIn: new Date().toLocaleTimeString(),
+    status: "Present"
+  });
+
+  await AttendanceSave.save();
+
+  res.send({ status: 250, message: "Check In Successfully" });
+});
 
 
+myapp.post("/employeeCheckOut", verifyAuth, async (req, res) => {
+  const employeeId = req.user.id;
+  const today = new Date().toLocaleDateString("en-CA");
+
+  const attendance = await Attendance.findOne({ employeeId, date: today });
+  if (!attendance) {
+    return res.send({ status: 451, message: "Please Check In First" });
+  }
+
+  if (attendance.checkOut) {
+    return res.send({ status: 452, message: "Already Checked Out" });
+  }
+
+  attendance.checkOut = new Date().toLocaleTimeString();
+  await attendance.save();
+
+  res.send({ status: 250, message: "Check Out Successfully" });
+});
 
 
+myapp.get("/employeeAllAttendance", verifyAuth, async (req, res) => {
+  const employeeId = req.user.id;
+
+  const attendance = await Attendance.find({ employeeId })
+    .sort({ date: -1 });
+
+  if (!attendance || attendance.length === 0) {
+    return res.send({ status: 450, message: "No Attendance Found" });
+  }
+
+  res.send({ status: 250, attendance });
+});
+
+myapp.get("/employeeProfile", verifyAuth, async (req, res) => {
+  try {
+    const employeeId = req.user.id;   // token se employee ki mongo _id
+
+    const employee = await Employees.findById(employeeId)
+      .select("-employeePass"); // password hide
+
+    if (!employee) {
+      return res.send({ status: 450, message: "Employee Not Found" });
+    }
+
+    res.send({ status: 250, employee });
+
+  } catch (err) {
+    res.send({ status: 500, message: "Server Error" });
+  }
+});
+
+// 🔍 FIND EMPLOYEE BY ID
+myapp.get("/FindById/:employeeId", async (req, res) => {
+  const { employeeId } = req.params;
+
+  const emp = await Employees.findOne({ employeeId });
+
+  if (!emp) {
+    return res.send({ status: 450, message: "Employee Not Found" });
+  }
+
+  res.send({
+    status: 250,
+    message: "Find Employee Success",
+    EmployeeDetails: emp
+  });
+});
+
+
+// 🔐 UPDATE PASSWORD
+myapp.put("/updatePassword/:employeeId/:newPass", async (req, res) => {
+  const { employeeId, newPass } = req.params;
+
+  const emp = await Employees.findOne({ employeeId });
+
+  if (!emp) {
+    return res.send({ status: 450, message: "Employee Not Found" });
+  }
+
+  emp.employeePass = newPass;
+  await emp.save();
+
+  res.send({ status: 250, message: "Password Updated Successfully" });
+});
 
 
 module.exports=myapp;
